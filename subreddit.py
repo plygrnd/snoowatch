@@ -1,12 +1,19 @@
 #!/usr/bin/python
 # coding: utf-8
 
+import logging
 import json
+
 from datetime import datetime
 
 import boto3
 from praw import Reddit
 
+handler = logging.StreamHandler()
+handler.setLevel(logging.DEBUG)
+logger = logging.getLogger('prawcore')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(handler)
 
 class Stats(Reddit):
     def __init__(self, aws_profile, site_name=None, requestor_class=None,

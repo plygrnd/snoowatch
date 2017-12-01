@@ -1,4 +1,4 @@
-version: 3.4
+version: "3.4"
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.0.0
@@ -37,8 +37,8 @@ services:
     image: docker.elastic.co/kibana/kibana:6.0.0
     container_name: kibana
     environment:
-      - elasticsearch.url: http://elasticsearch:9200
-      - server.name: AnxMods
+      - elasticsearch.url=http://elasticsearch:9200
+      - server.name=AnxMods
     ports:
       - 5601:5601
     networks:
