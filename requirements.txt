@@ -1,0 +1,15 @@
+boto3==1.4.7
+botocore==1.7.47
+certifi==2017.11.5
+chardet==3.0.4
+docutils==0.14
+idna==2.6
+jmespath==0.9.3
+praw==5.2.0
+prawcore==0.12.0
+python-dateutil==2.6.1
+requests==2.18.4
+s3transfer==0.1.11
+six==1.11.0
+update-checker==0.16
+urllib3==1.22
