@@ -58,19 +58,86 @@ class Stats(Reddit):
         metrics = []
 
         for post in posts:
-            data = ({
+            hot = [post for post in post.author.submissions.hot()]
+            new = [post for post in post.author.submissions.new()]
+            top = [post for post in post.author.submissions.top()]
+            cont = [post for post in post.author.submissions.controversial()]
+
+            hot_data = []
+            new_data = []
+            top_data = []
+            cont_data = []
+
+            for hot_post in hot:
+                hot_data.append({
+                    "subreddit": hot_post.subreddit.display_name,
+                    "karma": hot_post.score,
+                    "upvotes": hot_post.ups,
+                    "downvotes": hot_post.downs,
+                    "link": hot_post.shortlink,
+                    "title": hot_post.title,
+                    "created": hot_post.created_utc
+                })
+
+            for new_post in new:
+                new_data.append({
+                    "subreddit": new_post.subreddit.display_name,
+                    "karma": new_post.score,
+                    "upvotes": new_post.ups,
+                    "downvotes": new_post.downs,
+                    "link": new_post.shortlink,
+                    "title": new_post.title,
+                    "created": new_post.created_utc
+                })
+
+            for top_post in top:
+                top_data.append({
+                    "subreddit": top_post.subreddit.display_name,
+                    "karma": top_post.score,
+                    "upvotes": top_post.ups,
+                    "downvotes": top_post.downs,
+                    "link": top_post.shortlink,
+                    "title": top_post.title,
+                    "created": top_post.created_utc
+                })
+
+            for cont_post in cont:
+                cont_data.append({
+                    "subreddit": cont_post.subreddit.display_name,
+                    "karma": cont_post.score,
+                    "upvotes": cont_post.ups,
+                    "downvotes": cont_post.downs,
+                    "link": cont_post.shortlink,
+                    "title": cont_post.title,
+                    "created": cont_post.created_utc
+                })
+
+            previous_posts = {
+                "hot": hot_data,
+                "top": top_data,
+                "new": new_data,
+                "controversial": cont_data
+            }
+
+            data = {
                 "id": post.id,
                 "url": post.url,
                 "created": datetime.utcfromtimestamp(int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "author": post.author.name,
+                "author": {
+                    "name": post.author.name,
+                    "redditor_since": datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
+                    "previous_posts": previous_posts
+                },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
-                "comments": post.num_comments,
-                "karma": post.score
-            })
+                "comment_count": post.num_comments,
+                "karma": post.score,
+                "upvotes": post.ups,
+                "downvotes": post.downs
+            }
+
             metrics.append(data)
-            print(data)
 
         return metrics
 
