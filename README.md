@@ -1,3 +1,3 @@
-#subredditstats
+# subredditstats
 
-A simple library to retrieve statistics from Reddit communities.
+A suite of tools to analyze submissions, users and comments on Reddit.
