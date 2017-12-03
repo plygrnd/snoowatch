@@ -86,7 +86,8 @@ class Stats(Reddit):
                 author = post.author.name
                 redditor_since = datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S')
             except exceptions.NotFound as e:
-                author, redditor_since = '[deleted]'
+                author = '[deleted]'
+                redditor_since = '[deleted]'
 
             data = {
                 "id": post.id,
