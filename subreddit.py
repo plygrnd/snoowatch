@@ -3,17 +3,33 @@
 
 import logging
 import json
+import sys
 
 from datetime import datetime
+from multiprocessing import Pool
 
 import boto3
 from praw import Reddit
+from prawcore import exceptions
 
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-logger = logging.getLogger('prawcore')
+# We want the logger to reflect the name of the module it's logging.
+
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-logger.addHandler(handler)
+
+# Create a console logger for when this runs as a streaming processor
+# TODO: implement streaming processing
+console_logger = logging.StreamHandler()
+console_logger.setLevel(logging.DEBUG)
+
+# It has to be readable
+
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+console_logger.setFormatter(formatter)
+logger.addHandler(console_logger)
+
 
 class Stats(Reddit):
     def __init__(self, aws_profile, site_name=None, requestor_class=None,
@@ -53,78 +69,26 @@ class Stats(Reddit):
 
         return actions
 
-    def get_post_data(self, since):
+    def fetch_posts(self, since):
         """
         Grabs a bunch of data for posts to a subreddit.
 
         :param since: Date from which to pull data, in Unix epoch format
         :returns: List of posts
         """
-
-        posts = [post for post in self.sub.submissions(since, None)]
         metrics = []
 
+        logger.info('Fetching posts from Reddit API. This might take a while')
+        posts = [item for item in self.sub.submissions(since)]
+        logger.info('Fetched {} posts from Reddit.'.format(len(posts)))
+
         for post in posts:
-            hot = [post for post in post.author.submissions.hot()]
-            new = [post for post in post.author.submissions.new()]
-            top = [post for post in post.author.submissions.top()]
-            cont = [post for post in post.author.submissions.controversial()]
-
-            hot_data = []
-            new_data = []
-            top_data = []
-            cont_data = []
-
-            for hot_post in hot:
-                hot_data.append({
-                    "subreddit": hot_post.subreddit.display_name,
-                    "karma": hot_post.score,
-                    "upvotes": hot_post.ups,
-                    "downvotes": hot_post.downs,
-                    "link": hot_post.shortlink,
-                    "title": hot_post.title,
-                    "created": hot_post.created_utc
-                })
-
-            for new_post in new:
-                new_data.append({
-                    "subreddit": new_post.subreddit.display_name,
-                    "karma": new_post.score,
-                    "upvotes": new_post.ups,
-                    "downvotes": new_post.downs,
-                    "link": new_post.shortlink,
-                    "title": new_post.title,
-                    "created": new_post.created_utc
-                })
-
-            for top_post in top:
-                top_data.append({
-                    "subreddit": top_post.subreddit.display_name,
-                    "karma": top_post.score,
-                    "upvotes": top_post.ups,
-                    "downvotes": top_post.downs,
-                    "link": top_post.shortlink,
-                    "title": top_post.title,
-                    "created": top_post.created_utc
-                })
-
-            for cont_post in cont:
-                cont_data.append({
-                    "subreddit": cont_post.subreddit.display_name,
-                    "karma": cont_post.score,
-                    "upvotes": cont_post.ups,
-                    "downvotes": cont_post.downs,
-                    "link": cont_post.shortlink,
-                    "title": cont_post.title,
-                    "created": cont_post.created_utc
-                })
-
-            previous_posts = {
-                "hot": hot_data,
-                "top": top_data,
-                "new": new_data,
-                "controversial": cont_data
-            }
+            # We need to check if a post author deleted their account.
+            try:
+                author = post.author.name
+                redditor_since = datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S')
+            except exceptions.NotFound as e:
+                author, redditor_since = '[deleted]'
 
             data = {
                 "id": post.id,
@@ -132,9 +96,8 @@ class Stats(Reddit):
                 "created": datetime.utcfromtimestamp(int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
                 "author": {
-                    "name": post.author.name,
-                    "redditor_since": datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
-                    "previous_posts": previous_posts
+                    "name": author,
+                    "redditor_since": redditor_since
                 },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
@@ -144,6 +107,7 @@ class Stats(Reddit):
                 "downvotes": post.downs
             }
 
+            logger.debug(data)
             metrics.append(data)
 
         return metrics
@@ -176,5 +140,3 @@ class Stats(Reddit):
                 'Uniques': data[1],
                 'Pageviews': data[2]
             }
-
-        return trafficstats

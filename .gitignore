@@ -5,3 +5,4 @@ lib64
 share/
 pip*
 __pycache__
+*.swp
