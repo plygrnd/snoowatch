@@ -7,6 +7,9 @@ services:
       - cluster.name=tinkerbell
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "cluster.routing.allocation.disk.watermark.low=30gb"
+      - "cluster.routing.allocation.disk.watermark.high=25gb"
+      - "cluster.routing.allocation.disk.watermark.flood_stage=20gb"
     ulimits:
       memlock:
         soft: -1
@@ -25,6 +28,9 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "discovery.zen.ping.unicast.hosts=elasticsearch"
+      - "cluster.routing.allocation.disk.watermark.low=25gb"
+      - "cluster.routing.allocation.disk.watermark.high=20gb"
+      - "cluster.routing.allocation.disk.watermark.flood_stage=15gb"
     ulimits:
       memlock:
         soft: -1
@@ -43,8 +49,6 @@ services:
       - 5601:5601
     networks:
       - ekx
-
-
 
 volumes:
   esdata1:
