@@ -3,10 +3,8 @@
 
 import logging
 import json
-import sys
 
 from datetime import datetime
-from multiprocessing import Pool
 
 import boto3
 from praw import Reddit
