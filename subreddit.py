@@ -89,8 +89,6 @@ class Stats(Reddit):
 
         if self.is_banned:
             submission['author_banned'] = True
-        else:
-            submission
 
         return submission
 
@@ -102,9 +100,28 @@ class Stats(Reddit):
         :param redditor: Reddit username
         :returns: Bool(is_banned)
         """
+        logger.info('Checking if u/{} was banned by the admins.'.format(redditor))
         redditor = self.redditor(redditor)
 
-        return redditor.is_suspended
+        # MUH EASTER EGGZ
+        if redditor == 'niezo':
+            return 'https://i.imgur.com/hlg0Kti.jpg'
+        if redditor == 'BMO':
+            return 'http://www.artsillustrated.com/wp-content/uploads/2016/10/Justin-Johnson-.jpg'
+
+        has_suspended_attr = hasattr(redditor, 'is_suspended')
+        if has_suspended_attr:
+            logger.debug('is_suspended available.')
+            is_suspended = getattr(redditor, 'is_suspended')
+            if is_suspended:
+                logger.info('u/{} has gone to Valhalla. BYE FELICIA, BYEEE!"'.format(redditor))
+            else:
+                logger.info('u/{} is still with us. Odin be praised!'.format(redditor))
+            return is_suspended
+        else:
+            logger.debug('is_suspended unavailable')
+            logger.warn('No data available. u/{} is __probably__ active'.format(redditor))
+            return False
 
     def fetch_submissions(self, since, until):
         """
@@ -114,6 +131,14 @@ class Stats(Reddit):
         :param until: Date until which to pull data, in unix epoch format
         :returns: List of posts
         """
+
+        """
+        We need to convert input to a tuple,
+        so we can convert it to a UNIX timestamp.
+        """
+        since = time.mktime(datetime.strptime(since, '%Y/%m/%d').timetuple())
+        until = time.mktime(datetime.strptime(until, '%Y/%m/%d').timetuple())
+
         metrics = []
 
         logger.info('Fetching posts from Reddit API. This might take a while')
@@ -123,15 +148,18 @@ class Stats(Reddit):
         for post in posts:
             # We need to check if a post author deleted their account.
             try:
-                author = post.author.name
+                author = self.redditor(post.author.name)
                 redditor_since = datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S')
             except exceptions.NotFound as e:
                 author = '[deleted]'
                 redditor_since = '[deleted]'
 
-            if self.is_banned(post.author):
-                banned = True
-                redditor_since: '[banned]'
+            is_banned = self.is_banned(post.author.name)
+            if is_banned is True:
+                redditor_since = '[banned]'
+                is_banned = True
+            else:
+                is_banned = False
 
             data = {
                 "id": post.id,
@@ -141,7 +169,7 @@ class Stats(Reddit):
                 "author": {
                     "name": author,
                     "redditor_since": redditor_since,
-                    "banned": banned
+                    "is_banned": is_banned
                 },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
