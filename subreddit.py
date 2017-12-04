@@ -185,7 +185,7 @@ class Stats(Reddit):
                 "created": datetime.utcfromtimestamp(int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
                 "author": {
-                    "name": author,
+                    "name": post.author.name,
                     "redditor_since": redditor_since,
                     "is_banned": is_banned
                 },
