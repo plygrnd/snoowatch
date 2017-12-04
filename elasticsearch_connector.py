@@ -48,21 +48,21 @@ class ElasticsearchConnector(Elasticsearch):
 
         return index
 
-    def fetch_subreddit_data(self, since):
+    def fetch_subreddit_data(self, since, until):
         """
         We need to convert input to a tuple,
         so we can convert it to a UNIX timestamp.
         """
 
-        since = datetime.strptime(since, '%Y/%m/%d')
-        interval = int(time.mktime(since.timetuple()))
+        since = time.mktime(datetime.strptime(since, '%Y/%m/%d').timetuple())
+        until = time.mktime(datetime.strptime(until, '%Y/%m/%d').timetuple())
 
         logger.info('Fetching post data for r/{} from {}'.format(
             self.sub_name,
             since
         ))
 
-        data = [item for item in self.reddit.fetch_posts(interval)]
+        data = [item for item in self.reddit.fetch_posts(since, until)]
 
         for post in data:
             logger.debug(post)

@@ -3,6 +3,7 @@
 
 import logging
 import json
+import time
 
 from datetime import datetime
 
@@ -67,17 +68,56 @@ class Stats(Reddit):
 
         return actions
 
-    def fetch_posts(self, since):
+    def fetch_submission_by_id(self, post_id):
+        """
+        Fetch a single post by ID.
+        :param post_id: Base-36 encoded post ID.
+        :returns: Single submission
+        """
+
+        logger.info('Fetching post {}'.format(post_id))
+
+        post = self.submission(id=post_id)
+
+        submission = {
+            "title": post.title,
+            "link": post.permalink,
+            "url": post.url,
+            "text": post.selftext,
+            "author": post.author.name,
+        }
+
+        if self.is_banned:
+            submission['author_banned'] = True
+        else:
+            submission
+
+        return submission
+
+    def is_banned(self, redditor):
+        """
+        PRAW returns 200 even if a redditor was banhammered by the admins, blergh.  https://redd.it/7hfolk
+        Checks if a user was banned by the reddit admins.
+
+        :param redditor: Reddit username
+        :returns: Bool(is_banned)
+        """
+        redditor = self.redditor(redditor)
+
+        return redditor.is_suspended
+
+    def fetch_submissions(self, since, until):
         """
         Grabs a bunch of data for posts to a subreddit.
 
         :param since: Date from which to pull data, in Unix epoch format
+        :param until: Date until which to pull data, in unix epoch format
         :returns: List of posts
         """
         metrics = []
 
         logger.info('Fetching posts from Reddit API. This might take a while')
-        posts = [item for item in self.sub.submissions(since)]
+        posts = [item for item in self.sub.submissions(since, until)]
         logger.info('Fetched {} posts from Reddit.'.format(len(posts)))
 
         for post in posts:
@@ -89,6 +129,10 @@ class Stats(Reddit):
                 author = '[deleted]'
                 redditor_since = '[deleted]'
 
+            if self.is_banned(post.author):
+                banned = True
+                redditor_since: '[banned]'
+
             data = {
                 "id": post.id,
                 "url": post.url,
@@ -96,7 +140,8 @@ class Stats(Reddit):
                 "title": post.title,
                 "author": {
                     "name": author,
-                    "redditor_since": redditor_since
+                    "redditor_since": redditor_since,
+                    "banned": banned
                 },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
