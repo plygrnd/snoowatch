@@ -104,10 +104,28 @@ class Stats(Reddit):
         redditor = self.redditor(redditor)
 
         # MUH EASTER EGGZ
-        if redditor == 'niezo':
-            return 'https://i.imgur.com/hlg0Kti.jpg'
-        if redditor == 'BMO':
-            return 'http://www.artsillustrated.com/wp-content/uploads/2016/10/Justin-Johnson-.jpg'
+        import random
+        hedgies = [
+            'https://i.imgur.com/vfhwwbb.jpg',
+            'https://imgur.com/r/Hedgehog/KuAXs4T',
+            'https://i.imgur.com/X5mEUMI.jpg',
+            'https://i.imgur.com/SMoG8Cm.jpg',
+            'https://i.imgur.com/Yw0K791.jpg',
+            'https://i.imgur.com/Yll5vbG.jpg',
+            'https://i.imgur.com/NrMKa8Y.jpg',
+            'https://i.imgur.com/qVjFVb8.jpg',
+            'https://i.imgur.com/2IM92GD.jpg',
+            'https://i.imgur.com/Aa6hFDo.jpg'
+            'https://imgur.com/r/Hedgehog/W8skE',
+            'https://imgur.com/r/Hedgehog/UyXhP6u',
+            'https://imgur.com/r/Hedgehog/FLDAdNZ',
+            'https://i.imgur.com/9qqd2EVb.jpg'
+        ]
+        mods = ['niezo', 'muffinmedic', 'zelis42', 'bloo', 'remyschnitzel', 'ari', 'bmo', 'snitch', 'spaceblues',
+                'vodkalimes', 'kimininegaiwo', 'alpha176', '10thtardis']
+
+        if redditor in mods:
+            return random.choice(hedgies)
 
         has_suspended_attr = hasattr(redditor, 'is_suspended')
         if has_suspended_attr:
