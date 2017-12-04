@@ -101,7 +101,11 @@ class Stats(Reddit):
         :returns: Bool(is_banned)
         """
         logger.info('Checking if u/{} was banned by the admins.'.format(redditor))
-        redditor = self.redditor(redditor)
+        try:
+            redditor = self.redditor(redditor)
+        except exceptions.NotFound as deleted:
+            logger.warning('Account seems to have been deleted.')
+            return None
 
         # MUH EASTER EGGZ
         import random
@@ -139,7 +143,7 @@ class Stats(Reddit):
         else:
             logger.debug('is_suspended unavailable')
             logger.warn('No data available. u/{} is __probably__ active'.format(redditor))
-            return False
+            return None
 
     def fetch_submissions(self, since, until):
         """
@@ -177,7 +181,7 @@ class Stats(Reddit):
                 redditor_since = '[banned]'
                 is_banned = True
             else:
-                is_banned = False
+                is_banned = None
 
             data = {
                 "id": post.id,
@@ -185,7 +189,7 @@ class Stats(Reddit):
                 "created": datetime.utcfromtimestamp(int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
                 "author": {
-                    "name": post.author.name,
+                    "name": author,
                     "redditor_since": redditor_since,
                     "is_banned": is_banned
                 },
