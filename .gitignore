@@ -6,3 +6,4 @@ share/
 pip*
 __pycache__
 *.swp
+.flake8

@@ -37,8 +37,9 @@ class Stats(Reddit):
         # TODO: implement instance role fetching
         s3 = boto3.Session(profile_name=aws_profile).client('s3')
 
-        prawinit = json.loads(s3.get_object(Bucket='timewasterbot', Key='praw.json')
-                              ['Body'].read().decode('utf-8'))
+        prawinit = json.loads(s3.get_object(
+            Bucket='timewasterbot', Key='praw.json')
+            ['Body'].read().decode('utf-8'))
 
         super().__init__(**prawinit)
 
@@ -59,7 +60,8 @@ class Stats(Reddit):
             actions.append({
                 'Name': action.mod.name,
                 'Action': action.action,
-                'Time': datetime.utcfromtimestamp(int(action.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
+                'Time': datetime.utcfromtimestamp(
+                    int(action.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 'Details': action.details,
                 'Post': action.target_permalink,
                 'Post Title': action.target_title,
@@ -84,28 +86,28 @@ class Stats(Reddit):
             "link": post.permalink,
             "url": post.url,
             "text": post.selftext,
-            "author": post.author.name,
+            "author": self.fetch_reddit_account(post.author.name).name
         }
-
-        if self.is_banned:
-            submission['author_banned'] = True
 
         return submission
 
-    def is_banned(self, redditor):
+    def fetch_reddit_account(self, redditor):
         """
-        PRAW returns 200 even if a redditor was banhammered by the admins, blergh.  https://redd.it/7hfolk
-        Checks if a user was banned by the reddit admins.
+        Gets a reddit account or returns None if one is unavailable
 
         :param redditor: Reddit username
-        :returns: Bool(is_banned)
+        :returns: self.redditor or None
         """
-        logger.info('Checking if u/{} was banned by the admins.'.format(redditor))
+        logger.info('Getting account status for u/{} .'.format(redditor))
+        # We need to check if an account was deleted or shadowbanned
+        # (both return prawcore.exceptions.NotFound)
         try:
             redditor = self.redditor(redditor)
-        except exceptions.NotFound as deleted:
-            logger.warning('Account seems to have been deleted.')
-            return None
+            hasattr(redditor, 'fullname')
+            logger.info('u/{} is a valid reddit account.'.format(redditor.name))
+        except exceptions.NotFound:
+            logger.warning('u/{} either shadowbanned or deleted.'.format(redditor.name))
+            return
 
         # MUH EASTER EGGZ
         import random
@@ -131,19 +133,23 @@ class Stats(Reddit):
         if redditor in mods:
             return random.choice(hedgies)
 
+        # https://redd.it/3sbs31
+        # Accounts created after 2015/11/10 will have the is_suspended attribute
+        # All others will return nothing.
         has_suspended_attr = hasattr(redditor, 'is_suspended')
         if has_suspended_attr:
             logger.debug('is_suspended available.')
             is_suspended = getattr(redditor, 'is_suspended')
             if is_suspended:
-                logger.info('u/{} has gone to Valhalla. BYE FELICIA, BYEEE!"'.format(redditor))
+                logger.info('u/{} has been banned.'.format(redditor))
+                return
             else:
-                logger.info('u/{} is still with us. Odin be praised!'.format(redditor))
-            return is_suspended
+                logger.info('u/{} has an active Reddit account'.format(redditor))
+            return redditor
         else:
             logger.debug('is_suspended unavailable')
-            logger.warn('No data available. u/{} is __probably__ active'.format(redditor))
-            return None
+            logger.warn('An account exists for u/{}'.format(redditor))
+            return redditor
 
     def fetch_submissions(self, since, until):
         """
@@ -168,30 +174,31 @@ class Stats(Reddit):
         logger.info('Fetched {} posts from Reddit.'.format(len(posts)))
 
         for post in posts:
-            # We need to check if a post author deleted their account.
-            try:
-                author = self.redditor(post.author.name)
-                redditor_since = datetime.utcfromtimestamp(int(post.author.created_utc)).strftime('%Y-%m-%d %H:%M:%S')
-            except exceptions.NotFound as e:
-                author = '[deleted]'
-                redditor_since = '[deleted]'
+            author = self.fetch_reddit_account(post.author.name)
+            author_name = author.name
+            account_created = datetime.utcfromtimestamp(int(author.created_utc))
+            account_age = abs((datetime.now() - account_created).days)
 
-            is_banned = self.is_banned(post.author.name)
-            if is_banned is True:
-                redditor_since = '[banned]'
-                is_banned = True
-            else:
-                is_banned = None
+            if not author:
+                author_name = '[deleted]'
+                account_created, account_age = None
+
+            if hasattr(author, 'is_suspended'):
+                if getattr(author, 'is_suspended'):
+                    account_created = None
+                    account_age = '[banned]'
 
             data = {
                 "id": post.id,
                 "url": post.url,
-                "created": datetime.utcfromtimestamp(int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
+                "created": datetime.utcfromtimestamp(
+                    int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
                 "author": {
-                    "name": author,
-                    "redditor_since": redditor_since,
-                    "is_banned": is_banned
+                    "name": author_name,
+                    "account_created": str(account_created),
+                    "account_age": account_age,
+                    "account_age": str(account_age)
                 },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
@@ -217,20 +224,23 @@ class Stats(Reddit):
         }
 
         for data in traffic['hour']:
-            trafficstats['Hour'][datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
+            trafficstats['Hour'][
+                datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
                 'Uniques': data[1],
                 'Pageviews': data[2]
             }
 
         for data in traffic['day']:
-            trafficstats['Day'][datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
+            trafficstats['Day'][
+                datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
                 'Uniques': data[1],
                 'Pageviews': data[2],
                 'Subscriptions': data[3]
             }
 
         for data in traffic['month']:
-            trafficstats['Month'][datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
+            trafficstats['Month'][
+                datetime.utcfromtimestamp(data[0]).strftime('%Y-%m-%d %H:%M:%S')] = {
                 'Uniques': data[1],
                 'Pageviews': data[2]
             }
