@@ -175,7 +175,6 @@ class Stats(Reddit):
                 "submission_text": post.selftext,
                 "domain": post.domain,
                 "removed": post.removed,
-                "num_reports": post.user_reports,
                 "author": {
                     "author_name": str(post.author),
                     "account_created": None,
