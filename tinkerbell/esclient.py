@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import json
 import logging
 
 from elasticsearch import Elasticsearch
@@ -48,7 +47,7 @@ class ESClient(Elasticsearch):
         if not self.cluster.indices.exists(self.sub):
             index = self.cluster.indices.create(
                 index=self.sub,
-                body=json.load(datetime_mapping)
+                body=datetime_mapping
             )
 
             logger.info(index)
