@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-import pytest
-
-import subreddit
+from tinkerbell import subreddit
 
 s = subreddit.Stats(aws_profile='tinkerbell')
 

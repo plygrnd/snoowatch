@@ -109,30 +109,6 @@ class Stats(Reddit):
             logger.warning('u/{} either shadowbanned or deleted.'.format(redditor.name))
             return
 
-        # MUH EASTER EGGZ
-        import random
-        hedgies = [
-            'https://i.imgur.com/vfhwwbb.jpg',
-            'https://imgur.com/r/Hedgehog/KuAXs4T',
-            'https://i.imgur.com/X5mEUMI.jpg',
-            'https://i.imgur.com/SMoG8Cm.jpg',
-            'https://i.imgur.com/Yw0K791.jpg',
-            'https://i.imgur.com/Yll5vbG.jpg',
-            'https://i.imgur.com/NrMKa8Y.jpg',
-            'https://i.imgur.com/qVjFVb8.jpg',
-            'https://i.imgur.com/2IM92GD.jpg',
-            'https://i.imgur.com/Aa6hFDo.jpg'
-            'https://imgur.com/r/Hedgehog/W8skE',
-            'https://imgur.com/r/Hedgehog/UyXhP6u',
-            'https://imgur.com/r/Hedgehog/FLDAdNZ',
-            'https://i.imgur.com/9qqd2EVb.jpg'
-        ]
-        mods = ['niezo', 'muffinmedic', 'zelis42', 'bloo', 'remyschnitzel', 'ari', 'bmo', 'snitch', 'spaceblues',
-                'vodkalimes', 'kimininegaiwo', 'alpha176', '10thtardis']
-
-        if redditor in mods:
-            return random.choice(hedgies)
-
         # https://redd.it/3sbs31
         # Accounts created after 2015/11/10 will have the is_suspended attribute
         # All others will return nothing.
@@ -148,45 +124,43 @@ class Stats(Reddit):
             return redditor
         else:
             logger.debug('is_suspended unavailable')
-            logger.warn('An account exists for u/{}'.format(redditor))
+            logger.warning('An account exists for u/{}'.format(redditor))
             return redditor
 
     def fetch_submissions(self, since, until):
         """
-        Grabs a bunch of data for posts to a subreddit.
+        Creates a list of submission objects.
 
         :param since: Date from which to pull data, in Unix epoch format
         :param until: Date until which to pull data, in unix epoch format
-        :returns: List of posts
+        :returns: List of submission objects
         """
 
-        """
-        We need to convert input to a tuple,
-        so we can convert it to a UNIX timestamp.
-        """
         since = time.mktime(datetime.strptime(since, '%Y/%m/%d').timetuple())
         until = time.mktime(datetime.strptime(until, '%Y/%m/%d').timetuple())
 
+        logger.info('Fetching posts from Reddit API. This might take a while')
+        submissions = [item for item in self.sub.submissions(since, until)]
+        logger.info('Fetched {} submissions from Reddit.'.format(len(submissions)))
+
+        return submissions
+
+    @staticmethod
+    def parse_submissions(submissions):
+        """
+        Parses out useful data from submissions
+
+        :param submissions: name of submissions variable to parse
+        :returns: JSONified list of submissions
+        """
+
         metrics = []
 
-        logger.info('Fetching posts from Reddit API. This might take a while')
-        posts = [item for item in self.sub.submissions(since, until)]
-        logger.info('Fetched {} posts from Reddit.'.format(len(posts)))
+        for post in submissions:
 
-        for post in posts:
-            author = self.fetch_reddit_account(post.author.name)
-            author_name = author.name
-            account_created = datetime.utcfromtimestamp(int(author.created_utc))
-            account_age = abs((datetime.now() - account_created).days)
-
-            if not author:
-                author_name = '[deleted]'
-                account_created, account_age = None
-
-            if hasattr(author, 'is_suspended'):
-                if getattr(author, 'is_suspended'):
-                    account_created = None
-                    account_age = '[banned]'
+            # Disabled until we figure out how to do this fast.
+            # https://github.com/plygrnd/tinkerbell/issues/3
+            # author = self.fetch_reddit_account(post.author.name)
 
             data = {
                 "id": post.id,
@@ -194,20 +168,36 @@ class Stats(Reddit):
                 "created": datetime.utcfromtimestamp(
                     int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "author": {
-                    "name": author_name,
-                    "account_created": str(account_created),
-                    "account_age": account_age,
-                    "account_age": str(account_age)
-                },
                 "flair": post.link_flair_text,
                 "views": post.view_count,
                 "comment_count": post.num_comments,
+                "author": {
+                    "author_name": None,
+                    "account_created": None,
+                    "account_age": None,
+                    "is_banned": None
+                },
                 "karma": post.score,
                 "upvotes": post.ups,
                 "downvotes": post.downs
             }
 
+            """
+            # Disabled until we figure out how to do this quicker.
+            # https://github.com/plygrnd/tinkerbell/issues/3
+            if not post.author.name:
+                data['author']['author_name'] = '[deleted]'
+            elif hasattr(author, 'is_suspended'):
+                if getattr(author, 'is_suspended'):
+                    data['author']['account_name'] = author.name
+                    data['author']['is_banned'] = True
+            else:
+                data['author']['author_name'] = post.author.name
+                account_created = datetime.utcfromtimestamp(int(author.created_utc))
+                data['author']['account_created'] = str(account_created)
+                data['author']['account_age'] = abs((datetime.now() - account_created).days)
+                data['author']['is_banned'] = False
+            """
             logger.debug(data)
             metrics.append(data)
 
