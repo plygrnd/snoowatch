@@ -4,7 +4,7 @@ import logging
 
 from elasticsearch import Elasticsearch
 
-from tinkerbell import subreddit
+import subreddit
 
 # We want the logger to reflect the name of the module it's logging.
 
