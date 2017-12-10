@@ -5,6 +5,7 @@ import logging
 import json
 import time
 
+from collections import defaultdict
 from datetime import datetime
 
 import boto3
@@ -171,8 +172,12 @@ class Stats(Reddit):
                 "flair": post.link_flair_text,
                 "views": post.view_count,
                 "comment_count": post.num_comments,
+                "submission_text": post.selftext,
+                "domain": post.domain,
+                "removed": post.removed,
+                "num_reports": post.user_reports,
                 "author": {
-                    "author_name": None,
+                    "author_name": str(post.author),
                     "account_created": None,
                     "account_age": None,
                     "is_banned": None
