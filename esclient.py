@@ -32,13 +32,27 @@ class ESClient(Elasticsearch):
         self.cluster = Elasticsearch(host=cluster_url)
 
     def initialise_es_index(self):
-        datetime_mapping = {
+        # cyka blyat fucking fielddata bullshit
+        # pizdec elasticsearch not knowing what i want /s
+        subreddit_index_mapping = {
             "mappings": {
                 "post": {
                     "properties": {
                         "created":  {
                             "type": "date",
                             "format": "yyyy-MM-dd HH:mm:ss"
+                        },
+                        "author": {
+                            "type": "nested",
+                            "properties": {
+                                "name": {"type": "keyword"},
+                                "created": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
+                        }},
+                        "flair": {
+                            "type": "keyword"
+                        },
+                        "domain": {
+                            "type": "keyword"
                         }
                     }
                 }
@@ -47,7 +61,7 @@ class ESClient(Elasticsearch):
         if not self.cluster.indices.exists(self.sub):
             index = self.cluster.indices.create(
                 index=self.sub,
-                body=datetime_mapping
+                body=subreddit_index_mapping
             )
 
             logger.info(index)
@@ -57,7 +71,6 @@ class ESClient(Elasticsearch):
 
     def index_submissions(self, data):
         for post in data:
-            logger.debug(post)
             put_index = self.cluster.index(
                 index=self.sub,
                 doc_type='post',
