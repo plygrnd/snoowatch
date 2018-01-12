@@ -82,3 +82,46 @@ class ESClient(Elasticsearch):
             logger.debug(put_index)
 
         logger.debug('Indexed {} posts'.format(len(data)))
+
+    def stream_submissions(self):
+        """
+        Fetches a stream of submissions from a subreddit,
+        parses them and indexes the results into Elasticsearch.
+        Intended to run in a loop, which probably isn't the best way to do this.
+        TODO: Find a better way to do this.
+        """
+
+        logger.info('Starting submission stream')
+        substream = self.sub.stream.submissions()
+
+        for post in substream:
+            data = {
+                "id": post.id,
+                "url": post.url,
+                "created": datetime.utcfromtimestamp(
+                    int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
+                "title": post.title,
+                "flair": post.link_flair_text,
+                "views": post.view_count,
+                "comment_count": post.num_comments,
+                "submission_text": post.selftext,
+                "domain": post.domain,
+                "author": {
+                    "author_name": str(post.author),
+                    "account_created": None,
+                    "account_age": None,
+                    "is_banned": None
+                },
+                "karma": post.score,
+                "upvotes": post.ups,
+                "downvotes": post.downs
+            }
+
+            indexed_data = self.cluster.index(
+                doc_type='post',
+                index=self.sub,
+                id=data['id'],
+                body=data
+            )
+
+            logger.debug(indexed_data)
