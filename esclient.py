@@ -31,6 +31,8 @@ class ESClient(Elasticsearch):
         self.sub = sub
         self.cluster = Elasticsearch(host=cluster_url)
 
+        super().__init__()
+
     def initialise_es_index(self):
         # cyka blyat fucking fielddata bullshit
         # pizdec elasticsearch not knowing what i want /s
@@ -38,7 +40,7 @@ class ESClient(Elasticsearch):
             "mappings": {
                 "post": {
                     "properties": {
-                        "created":  {
+                        "created": {
                             "type": "date",
                             "format": "yyyy-MM-dd HH:mm:ss"
                         },
@@ -47,7 +49,7 @@ class ESClient(Elasticsearch):
                             "properties": {
                                 "name": {"type": "keyword"},
                                 "created": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
-                        }},
+                            }},
                         "flair": {
                             "type": "keyword"
                         },
