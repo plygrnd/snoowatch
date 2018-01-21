@@ -2,6 +2,7 @@
 
 import logging
 
+from datetime import datetime
 from elasticsearch import Elasticsearch
 
 import subreddit
@@ -92,7 +93,7 @@ class ESClient(Elasticsearch):
         """
 
         logger.info('Starting submission stream')
-        substream = self.sub.stream.submissions()
+        substream = self.reddit.subreddit(self.sub).stream.submissions()
 
         for post in substream:
             data = {
@@ -117,7 +118,7 @@ class ESClient(Elasticsearch):
                 "downvotes": post.downs
             }
 
-            indexed_data = self.cluster.index(
+            indexed_data = self.cluster.client.index(
                 doc_type='post',
                 index=self.sub,
                 id=data['id'],
