@@ -60,8 +60,8 @@ class ESClient(Elasticsearch):
                 }
             }
         }
-        if not self.cluster.indices.exists(self.sub):
-            index = self.cluster.indices.create(
+        if not self.cluster.client.indices.exists(self.sub):
+            index = self.cluster.client.indices.create(
                 index=self.sub,
                 body=subreddit_index_mapping
             )
