@@ -5,6 +5,6 @@ import subreddit
 s = subreddit.Stats(aws_profile='tinkerbell')
 
 
-def test_is_banned():
-    u = s.is_banned('beefythecat')
-    assert u is False
+def test_fetch_reddit_account():
+    u = s.fetch_reddit_account('beefythecat')
+    assert u

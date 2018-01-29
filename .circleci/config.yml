@@ -48,9 +48,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python test/integ/test_subreddit.py
+            python -m pytest test/
 
       - store_artifacts:
           path: test-reports
           destination: test-reports
-          
