@@ -136,11 +136,18 @@ class Stats(Reddit):
         :param until: Date until which to pull data, in unix epoch format
         :returns: List of submission objects
         """
+        since = time.mktime(
+            datetime.strptime(
+                since, '%Y/%m/%d'
+            ).timetuple()
+        )
+        until = time.mktime(
+            datetime.strptime(
+                until, '%Y/%m/%d'
+            ).timetuple()
+        )
 
-        since = time.mktime(datetime.strptime(since, '%Y/%m/%d').timetuple())
-        until = time.mktime(datetime.strptime(until, '%Y/%m/%d').timetuple())
-
-        logger.info('Fetching posts from Reddit API. This might take a while')
+        logger.info('Fetching submissions from Reddit.')
         submissions = [item for item in self.sub.submissions(since, until)]
         logger.info('Fetched {} submissions from Reddit.'.format(len(submissions)))
 
@@ -158,10 +165,6 @@ class Stats(Reddit):
         metrics = []
 
         for post in submissions:
-
-            # Disabled until we figure out how to do this fast.
-            # https://github.com/plygrnd/tinkerbell/issues/3
-            # author = self.fetch_reddit_account(post.author.name)
 
             data = {
                 "id": post.id,

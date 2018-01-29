@@ -74,7 +74,7 @@ class ESClient(Elasticsearch):
 
     def index_submissions(self, data):
         for post in data:
-            put_index = self.cluster.index(
+            put_index = self.cluster.client.index(
                 index=self.sub,
                 doc_type='post',
                 id=post['id'],
