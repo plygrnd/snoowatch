@@ -3,7 +3,7 @@
 import logging
 
 from datetime import datetime
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 import subreddit
 
@@ -30,9 +30,10 @@ class ESClient(Elasticsearch):
     def __init__(self, aws_profile, sub, cluster_url):
         self.reddit = subreddit.Stats(aws_profile, sub=sub)
         self.sub = sub
-        self.cluster = Elasticsearch(host=cluster_url)
-
-        super().__init__()
+        self.cluster = Elasticsearch(
+            host=cluster_url,
+            connection_class=RequestsHttpConnection
+        )
 
     def initialise_es_index(self):
         # cyka blyat fucking fielddata bullshit
@@ -61,8 +62,8 @@ class ESClient(Elasticsearch):
                 }
             }
         }
-        if not self.cluster.client.indices.exists(self.sub):
-            index = self.cluster.client.indices.create(
+        if not self.cluster.indices.exists(self.sub):
+            index = self.cluster.indices.create(
                 index=self.sub,
                 body=subreddit_index_mapping
             )
@@ -74,7 +75,7 @@ class ESClient(Elasticsearch):
 
     def index_submissions(self, data):
         for post in data:
-            put_index = self.cluster.client.index(
+            put_index = self.cluster.index(
                 index=self.sub,
                 doc_type='post',
                 id=post['id'],
@@ -118,7 +119,7 @@ class ESClient(Elasticsearch):
                 "downvotes": post.downs
             }
 
-            indexed_data = self.cluster.client.index(
+            indexed_data = self.cluster.index(
                 doc_type='post',
                 index=self.sub,
                 id=data['id'],
