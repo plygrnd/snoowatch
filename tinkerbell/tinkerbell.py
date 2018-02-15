@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from datetime import datetime
+from time import sleep
 
 from elasticsearch_dsl import Search
 
@@ -20,8 +21,7 @@ class Tinkerbell(object):
         self.search = Search(using=self.es.cluster, index='anxiety')
         self.results = self.search.query(
             "range", created={'lte': 'now'}
-        ).execute()
-        print(self.results)
+            ).execute()
         self.last_post = datetime.strftime(
             datetime.strptime(
                 self.results[0]['created'], '%Y-%m-%d %H:%M:%S'
@@ -47,5 +47,8 @@ class Tinkerbell(object):
 
 
 if __name__ == "__main__":
+    print("Sleeping 75 seconds to let ES start up")
+    sleep(75)
+    print("OK I'm awake, doing the thing with the stuff")
     t = Tinkerbell()
     t.tinkerbell()

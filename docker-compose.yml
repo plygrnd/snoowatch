@@ -1,4 +1,4 @@
-version: "2"
+version: "3"
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.2
@@ -49,6 +49,15 @@ services:
       - 5601:5601
     networks:
       - ekx
+  runtime:
+    build: .
+    container_name: tinkerbell-runtime
+    depends_on:
+      - elasticsearch
+      - elasticsearch2
+      - kibana
+    command: >
+      /bin/bash -c "python tinkerbell/tinkerbell.py"
 volumes:
   esdata1:
     driver: local
