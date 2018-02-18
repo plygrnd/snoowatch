@@ -8,3 +8,4 @@ __pycache__
 *.swp
 .flake8
 .idea/
+secrets/

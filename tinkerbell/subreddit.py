@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # coding: utf-8
 
-import logging
 import json
+import logging
+import os
 import time
-
-from collections import defaultdict
 from datetime import datetime
 
 import boto3
@@ -32,11 +31,17 @@ logger.addHandler(console_logger)
 
 
 class Stats(Reddit):
-    def __init__(self, aws_profile, site_name=None, requestor_class=None,
+    def __init__(self, site_name=None, requestor_class=None,
                  requestor_kwargs=None, sub=None, **config_settings):
 
+        principal = os.getenv('AWS_ACCESS_KEY_ID')
+        credential = os.getenv('AWS_SECRET_ACCESS_KEY')
+
         # TODO: implement instance role fetching
-        s3 = boto3.Session(profile_name=aws_profile).client('s3')
+        s3 = boto3.Session(
+            aws_access_key_id=principal,
+            aws_secret_access_key=credential
+        ).client('s3')
 
         prawinit = json.loads(s3.get_object(
             Bucket='timewasterbot', Key='praw.json')

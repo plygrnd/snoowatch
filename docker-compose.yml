@@ -56,6 +56,9 @@ services:
       - elasticsearch
       - elasticsearch2
       - kibana
+    secrets:
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
     command: >
       /bin/bash -c "python tinkerbell/tinkerbell.py"
 volumes:
