@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 # Create a console logger for when this runs as a streaming processor
-# TODO: implement streaming processing
 console_logger = logging.StreamHandler()
 console_logger.setLevel(logging.DEBUG)
 
@@ -24,12 +23,13 @@ logger.addHandler(console_logger)
 
 
 class VaultClient(hvac.Client):
-    def __init__(self, shares, threshold, url):
+    def __init__(self, shares, threshold):
         self.shares = shares
         self.threshold = threshold
-        self.url = url
 
-        self.client = hvac.Client(url=self.url)
+        self.client = hvac.Client()
+
+        super().__init__()
 
     def bootstrap_vault(self):
         if self.client.is_initialized():
@@ -47,8 +47,6 @@ class VaultClient(hvac.Client):
                 "keys": keys
             }
 
-            logger.info('Vault has been bootstrapped. Keys and root token follow.\n'
-                        'Keep these safe and DO NOT SHARE THEM with unauthorised parties.\n'
-                        'If you do, you risk compromising your credentials.')
+            logger.info('Vault has been bootstrapped.')
 
             return seed
