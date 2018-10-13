@@ -14,6 +14,7 @@ from tinkerbell.log import log_generator
 
 logger = log_generator(__name__)
 
+
 class Stats(Reddit):
     def __init__(self, site_name=None, requestor_class=None,
                  requestor_kwargs=None, sub=None, **config_settings):
