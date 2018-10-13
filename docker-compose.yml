@@ -63,38 +63,6 @@ services:
     networks:
       - ekx
 
-  consul:
-    container_name: consul
-    command: agent -server -http-port 8500 -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect=1
-    image: consul:latest
-    volumes:
-      - consul:/consul/config
-    ports:
-      - 9301:9301
-      - 8500:8500
-      - 9600:9600/udp
-    networks:
-      - ekx
-
-  vault:
-    container_name: vault
-    image: vault
-    ports:
-      - 9201:8201
-    networks:
-      - ekx
-    volumes:
-      - vault:/mnt/vault/config
-      - vault:/mnt/vault/data
-      - vault:/mnt/vault/logs
-    cap_add:
-      - IPC_LOCK
-    depends_on:
-      - consul
-    environment:
-      - VAULT_LOCAL_CONFIG={"backend":{"consul":{"address":"consul:8500", "path":"vault"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":1}}
-    command: server
-
 volumes:
   esdata1:
     driver: local

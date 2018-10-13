@@ -2,38 +2,23 @@
 # coding: utf-8
 
 import json
-import logging
-import os
 import time
 from datetime import datetime
 
 import boto3
+import os
 from praw import Reddit
 from prawcore import exceptions
 
-# We want the logger to reflect the name of the module it's logging.
+from tinkerbell.log import log_generator
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Create a console logger for when this runs as a streaming processor
-# TODO: implement streaming processing
-console_logger = logging.StreamHandler()
-console_logger.setLevel(logging.DEBUG)
-
-# It has to be readable
-
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-console_logger.setFormatter(formatter)
-logger.addHandler(console_logger)
-
+logger = log_generator(__name__)
 
 class Stats(Reddit):
     def __init__(self, site_name=None, requestor_class=None,
                  requestor_kwargs=None, sub=None, **config_settings):
 
+        self.requestor_kwargs = requestor_kwargs
         principal = os.getenv('AWS_ACCESS_KEY_ID')
         credential = os.getenv('AWS_SECRET_ACCESS_KEY')
 

@@ -5,8 +5,8 @@ from time import sleep
 
 from elasticsearch_dsl import Search
 
-from esclient import ESClient
-from subreddit import Stats
+from tinkerbell.esclient import ESClient
+from tinkerbell.subreddit import Stats
 
 
 class Tinkerbell(object):
@@ -22,12 +22,8 @@ class Tinkerbell(object):
         self.results = self.search.query(
             "range", created={'lte': 'now'}
             ).execute()
-        self.last_post = datetime.strftime(
-            datetime.strptime(
-                self.results[0]['created'], '%Y-%m-%d %H:%M:%S'
-            ).date(),
-            '%Y/%m/%d'
-        )
+        self.last_post_timestamp = datetime.strptime(self.results[0]['created'], '%Y-%m-%d %H:%M:%S').date()
+        self.last_post = datetime.strftime(self.last_post_timestamp, '%Y/%m/%d')
 
     def tinkerbell(self):
 

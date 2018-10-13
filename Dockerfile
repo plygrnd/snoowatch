@@ -1,7 +1,8 @@
 FROM python:3
 
-COPY requirements.txt ./
+COPY Pipfile ./
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install pipenv
+RUN pipenv install
 
 COPY ./tinkerbell ./tinkerbell
