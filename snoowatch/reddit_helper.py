@@ -2,43 +2,37 @@
 # coding: utf-8
 
 import json
+import time
 from datetime import datetime
 
-import fnmatch
+import boto3
 import os
 from praw import Reddit
 from prawcore import exceptions
-from psaw import PushshiftAPI
 
-from snoowatch.log import log_generator
+from tinkerbell.log import log_generator
 
 logger = log_generator(__name__)
 
-
-def get_reddit_creds(path):
-    for root, dirs, files in os.walk(path):
-        for filename in fnmatch.filter(files, 'reddit_auth'):
-            creds = os.path.join(root, filename)
-
-            return creds
-
-
-class RedditIndexer(Reddit):
-    def __init__(self, requestor_kwargs=None, sub=None):
+class Stats(Reddit):
+    def __init__(self, site_name=None, requestor_class=None,
+                 requestor_kwargs=None, sub=None, **config_settings):
 
         self.requestor_kwargs = requestor_kwargs
+        principal = os.getenv('AWS_ACCESS_KEY_ID')
+        credential = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-        reddit_auth = get_reddit_creds('/run/secrets')
-        if not reddit_auth:
-            reddit_auth = get_reddit_creds('..')
+        # TODO: implement instance role fetching
+        s3 = boto3.Session(
+            aws_access_key_id=principal,
+            aws_secret_access_key=credential
+        ).client('s3')
 
-        with open(reddit_auth) as reddit_auth:
-            reddit_auth = reddit_auth.read()
-            prawinit = json.loads(reddit_auth)
+        prawinit = json.loads(s3.get_object(
+            Bucket='timewasterbot', Key='praw.json')
+            ['Body'].read().decode('utf-8'))
 
         super().__init__(**prawinit)
-
-        self.pushshift = PushshiftAPI()
 
         if sub:
             self.sub = self.subreddit(sub)
@@ -132,23 +126,27 @@ class RedditIndexer(Reddit):
         :param until: Date until which to pull data, in unix epoch format
         :returns: List of submission objects
         """
+        since = time.mktime(
+            datetime.strptime(
+                since, '%Y/%m/%d'
+            ).timetuple()
+        )
+        until = time.mktime(
+            datetime.strptime(
+                until, '%Y/%m/%d'
+            ).timetuple()
+        )
 
-        logger.info('Fetching historical submissions from Pushshift.')
-        logger.debug('Since: {}'.format(since))
-        logger.debug('Until: {}'.format(until))
-
-        # submissions() has been removed from PRAW because Reddit turned Cloudsearch off. 💩.
-        submissions = [x for x in self.pushshift.search_submissions(before=until, after=since, subreddit=self.sub)]
-        logger.info('Fetched {} submissions from Pushshift.'.format(len(submissions)))
+        logger.info('Fetching submissions from Reddit.')
+        submissions = [item for item in self.sub.submissions(since, until)]
+        logger.info('Fetched {} submissions from Reddit.'.format(len(submissions)))
 
         return submissions
 
-    def enrich_and_parse_submissions(self, submissions):
+    @staticmethod
+    def parse_submissions(submissions):
         """
-        Parses out useful data from submissions.
-        This has been trimmed like crazy from v1 because Reddit's new API is shit
-        and doesn't return stuff like submission karma, at least not that I can see.
-        TODO: Figure out how to get better metrics for submissions (views, karma etc)
+        Parses out useful data from submissions
 
         :param submissions: name of submissions variable to parse
         :returns: JSONified list of submissions
@@ -158,31 +156,45 @@ class RedditIndexer(Reddit):
 
         for post in submissions:
 
-            creation_time = datetime.utcfromtimestamp(
-                int(post.created_utc)
-            ).strftime('%Y-%m-%d %H:%M:%S')
-
             data = {
                 "id": post.id,
                 "url": post.url,
-                "created": creation_time,
+                "created": datetime.utcfromtimestamp(
+                    int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "author": post.author
+                "flair": post.link_flair_text,
+                "views": post.view_count,
+                "comment_count": post.num_comments,
+                "submission_text": post.selftext,
+                "domain": post.domain,
+                "removed": post.removed,
+                "author": {
+                    "author_name": str(post.author),
+                    "account_created": None,
+                    "account_age": None,
+                    "is_banned": None
+                },
+                "karma": post.score,
+                "upvotes": post.ups,
+                "downvotes": post.downs
             }
 
-            try:
-                data['submission_text'] = {
-                    "text": post.selftext,
-                    "source": "pushshift"
-                }
-            except(AttributeError, KeyError):
-                logger.debug(
-                    "Could not fetch submission text from Pushshift. Calling Reddit for post {}".format(post.id))
-                data['submission_text'] = {
-                    "text": self.submission(post.id).selftext,
-                    "source": "reddit"
-                }
-
+            """
+            # Disabled until we figure out how to do this quicker.
+            # https://github.com/plygrnd/tinkerbell/issues/3
+            if not post.author.name:
+                data['author']['author_name'] = '[deleted]'
+            elif hasattr(author, 'is_suspended'):
+                if getattr(author, 'is_suspended'):
+                    data['author']['account_name'] = author.name
+                    data['author']['is_banned'] = True
+            else:
+                data['author']['author_name'] = post.author.name
+                account_created = datetime.utcfromtimestamp(int(author.created_utc))
+                data['author']['account_created'] = str(account_created)
+                data['author']['account_age'] = abs((datetime.now() - account_created).days)
+                data['author']['is_banned'] = False
+            """
             logger.debug(data)
             metrics.append(data)
 

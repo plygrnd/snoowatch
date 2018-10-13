@@ -4,13 +4,13 @@ from datetime import datetime
 
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
-from snoowatch import log, reddit_helper
+from tinkerbell import log, subreddit
 
 logger = log.log_generator(__name__)
 
 class ESClient(Elasticsearch):
-    def __init__(self, sub, cluster_url):
-        self.reddit = reddit_helper.RedditIndexer(sub=sub)
+    def __init__(self, aws_profile, sub, cluster_url):
+        self.reddit = subreddit.Stats(aws_profile, sub=sub)
         self.sub = sub
         self.cluster = Elasticsearch(
             host=cluster_url,
@@ -27,6 +27,18 @@ class ESClient(Elasticsearch):
                         "created": {
                             "type": "date",
                             "format": "yyyy-MM-dd HH:mm:ss"
+                        },
+                        "author": {
+                            "type": "nested",
+                            "properties": {
+                                "name": {"type": "keyword"},
+                                "created": {"type": "date", "format": "yyyy-MM-dd HH:mm:ss"},
+                            }},
+                        "flair": {
+                            "type": "keyword"
+                        },
+                        "domain": {
+                            "type": "keyword"
                         }
                     }
                 }
@@ -67,20 +79,26 @@ class ESClient(Elasticsearch):
         substream = self.reddit.subreddit(self.sub).stream.submissions()
 
         for post in substream:
-            creation_time = datetime.utcfromtimestamp(
-                int(post.created_utc)
-            ).strftime('%Y-%m-%d %H:%M:%S')
-
             data = {
                 "id": post.id,
                 "url": post.url,
-                "created": creation_time,
+                "created": datetime.utcfromtimestamp(
+                    int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "author": post.author.name,
-                "submission_text": {
-                    "text": post.selftext,
-                    "source": "reddit"
-                }
+                "flair": post.link_flair_text,
+                "views": post.view_count,
+                "comment_count": post.num_comments,
+                "submission_text": post.selftext,
+                "domain": post.domain,
+                "author": {
+                    "author_name": str(post.author),
+                    "account_created": None,
+                    "account_age": None,
+                    "is_banned": None
+                },
+                "karma": post.score,
+                "upvotes": post.ups,
+                "downvotes": post.downs
             }
 
             indexed_data = self.cluster.index(
