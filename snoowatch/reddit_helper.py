@@ -2,38 +2,40 @@
 # coding: utf-8
 
 import json
-import time
 from datetime import datetime
 
-import boto3
+import fnmatch
 import os
 from praw import Reddit
 from prawcore import exceptions
+from psaw import PushshiftAPI
 
 from tinkerbell.log import log_generator
 
 logger = log_generator(__name__)
 
 
+def get_reddit_creds(path):
+    for root, dirs, files in os.walk(path):
+        for filename in fnmatch.filter(files, 'reddit_auth'):
+            creds = os.path.join(root, filename)
+
+            return creds
+
 class Stats(Reddit):
-    def __init__(self, site_name=None, requestor_class=None,
-                 requestor_kwargs=None, sub=None, **config_settings):
+    def __init__(self, requestor_kwargs=None, sub=None):
 
         self.requestor_kwargs = requestor_kwargs
-        principal = os.getenv('AWS_ACCESS_KEY_ID')
-        credential = os.getenv('AWS_SECRET_ACCESS_KEY')
 
-        # TODO: implement instance role fetching
-        s3 = boto3.Session(
-            aws_access_key_id=principal,
-            aws_secret_access_key=credential
-        ).client('s3')
+        reddit_auth = get_reddit_creds('/run/secrets')
 
-        prawinit = json.loads(s3.get_object(
-            Bucket='timewasterbot', Key='praw.json')
-            ['Body'].read().decode('utf-8'))
+        with open(reddit_auth) as reddit_auth:
+            reddit_auth = reddit_auth.read()
+            prawinit = json.loads(reddit_auth)
 
         super().__init__(**prawinit)
+
+        self.pushshift = PushshiftAPI()
 
         if sub:
             self.sub = self.subreddit(sub)
@@ -127,20 +129,16 @@ class Stats(Reddit):
         :param until: Date until which to pull data, in unix epoch format
         :returns: List of submission objects
         """
-        since = time.mktime(
-            datetime.strptime(
-                since, '%Y/%m/%d'
-            ).timetuple()
-        )
-        until = time.mktime(
-            datetime.strptime(
-                until, '%Y/%m/%d'
-            ).timetuple()
-        )
 
-        logger.info('Fetching submissions from Reddit.')
-        submissions = [item for item in self.sub.submissions(since, until)]
-        logger.info('Fetched {} submissions from Reddit.'.format(len(submissions)))
+        logger.info('Fetching historical submissions from Pushshift.')
+        logger.debug('Since: {}'.format(since))
+        logger.debug('Until: {}'.format(until))
+
+        # submissions() has been removed from PRAW because Reddit turned Cloudsearch off. 💩.
+        # submissions = [item for item in self.sub.submissions(since, until)]
+        submissions = self.pushshift.search_submissions(before=until, after=since, subreddit=self.sub)
+        submissions = [x for x in submissions]
+        logger.info('Fetched {} submissions from Pushshift.'.format(len(submissions)))
 
         return submissions
 
@@ -156,6 +154,8 @@ class Stats(Reddit):
         metrics = []
 
         for post in submissions:
+            # If something below is None, it's because Pushshift doesn't store that data.
+            # We'll need to backfill it at a later stage by hitting the Reddit API.
 
             data = {
                 "id": post.id,
@@ -163,21 +163,21 @@ class Stats(Reddit):
                 "created": datetime.utcfromtimestamp(
                     int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "flair": post.link_flair_text,
-                "views": post.view_count,
+                "flair": post.link_flair_richtext,
+                "views": None,
                 "comment_count": post.num_comments,
                 "submission_text": post.selftext,
                 "domain": post.domain,
-                "removed": post.removed,
+                "removed": None,
                 "author": {
                     "author_name": str(post.author),
                     "account_created": None,
                     "account_age": None,
                     "is_banned": None
                 },
-                "karma": post.score,
-                "upvotes": post.ups,
-                "downvotes": post.downs
+                "karma": None,
+                "upvotes": None,
+                "downvotes": None
             }
 
             """
