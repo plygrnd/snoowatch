@@ -9,8 +9,8 @@ from tinkerbell import log, subreddit
 logger = log.log_generator(__name__)
 
 class ESClient(Elasticsearch):
-    def __init__(self, aws_profile, sub, cluster_url):
-        self.reddit = subreddit.Stats(aws_profile, sub=sub)
+    def __init__(self, sub, cluster_url):
+        self.reddit = subreddit.Stats(sub=sub)
         self.sub = sub
         self.cluster = Elasticsearch(
             host=cluster_url,
@@ -85,20 +85,21 @@ class ESClient(Elasticsearch):
                 "created": datetime.utcfromtimestamp(
                     int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
                 "title": post.title,
-                "flair": post.link_flair_text,
-                "views": post.view_count,
+                "flair": post.link_flair_richtext,
+                "views": None,
                 "comment_count": post.num_comments,
                 "submission_text": post.selftext,
                 "domain": post.domain,
+                "removed": None,
                 "author": {
                     "author_name": str(post.author),
                     "account_created": None,
                     "account_age": None,
                     "is_banned": None
                 },
-                "karma": post.score,
-                "upvotes": post.ups,
-                "downvotes": post.downs
+                "karma": None,
+                "upvotes": None,
+                "downvotes": None
             }
 
             indexed_data = self.cluster.index(
