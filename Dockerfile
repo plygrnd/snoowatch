@@ -13,5 +13,5 @@ COPY requirements.txt ./
 RUN pip3 install -r requirements.txt
 RUN rm requirements.txt
 
-COPY tinkerbell ./runtime/tinkerbell
-COPY bin ./runtime/
+COPY snoowatch ./snoowatch
+COPY bin .

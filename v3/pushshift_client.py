@@ -1,8 +1,8 @@
-from typing import List, Any
+from typing import Any, List
 
 from psaw import PushshiftAPI
 
-from tinkerbell.log import log_generator
+from snoowatch.log import log_generator
 
 logger = log_generator(__name__)
 

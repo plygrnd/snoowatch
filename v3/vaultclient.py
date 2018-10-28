@@ -3,7 +3,7 @@
 import docker
 import hvac
 
-from tinkerbell.log import log_generator
+from snoowatch.log import log_generator
 
 logger = log_generator(__name__)
 

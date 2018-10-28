@@ -10,7 +10,7 @@ from praw import Reddit
 from prawcore import exceptions
 from psaw import PushshiftAPI
 
-from tinkerbell.log import log_generator
+from snoowatch.log import log_generator
 
 logger = log_generator(__name__)
 
@@ -22,12 +22,15 @@ def get_reddit_creds(path):
 
             return creds
 
-class Stats(Reddit):
+
+class RedditIndexer(Reddit):
     def __init__(self, requestor_kwargs=None, sub=None):
 
         self.requestor_kwargs = requestor_kwargs
 
         reddit_auth = get_reddit_creds('/run/secrets')
+        if not reddit_auth:
+            reddit_auth = get_reddit_creds('..')
 
         with open(reddit_auth) as reddit_auth:
             reddit_auth = reddit_auth.read()
@@ -135,17 +138,17 @@ class Stats(Reddit):
         logger.debug('Until: {}'.format(until))
 
         # submissions() has been removed from PRAW because Reddit turned Cloudsearch off. 💩.
-        # submissions = [item for item in self.sub.submissions(since, until)]
-        submissions = self.pushshift.search_submissions(before=until, after=since, subreddit=self.sub)
-        submissions = [x for x in submissions]
+        submissions = [x for x in self.pushshift.search_submissions(before=until, after=since, subreddit=self.sub)]
         logger.info('Fetched {} submissions from Pushshift.'.format(len(submissions)))
 
         return submissions
 
-    @staticmethod
-    def parse_submissions(submissions):
+    def enrich_and_parse_submissions(self, submissions):
         """
-        Parses out useful data from submissions
+        Parses out useful data from submissions.
+        This has been trimmed like crazy from v1 because Reddit's new API is shit
+        and doesn't return stuff like submission karma, at least not that I can see.
+        TODO: Figure out how to get better metrics for submissions (views, karma etc)
 
         :param submissions: name of submissions variable to parse
         :returns: JSONified list of submissions
@@ -154,48 +157,32 @@ class Stats(Reddit):
         metrics = []
 
         for post in submissions:
-            # If something below is None, it's because Pushshift doesn't store that data.
-            # We'll need to backfill it at a later stage by hitting the Reddit API.
+
+            creation_time = datetime.utcfromtimestamp(
+                int(post.created_utc)
+            ).strftime('%Y-%m-%d %H:%M:%S')
 
             data = {
                 "id": post.id,
                 "url": post.url,
-                "created": datetime.utcfromtimestamp(
-                    int(post.created_utc)).strftime('%Y-%m-%d %H:%M:%S'),
+                "created": creation_time,
                 "title": post.title,
-                "flair": post.link_flair_richtext,
-                "views": None,
-                "comment_count": post.num_comments,
-                "submission_text": post.selftext,
-                "domain": post.domain,
-                "removed": None,
-                "author": {
-                    "author_name": str(post.author),
-                    "account_created": None,
-                    "account_age": None,
-                    "is_banned": None
-                },
-                "karma": None,
-                "upvotes": None,
-                "downvotes": None
+                "author": post.author
             }
 
-            """
-            # Disabled until we figure out how to do this quicker.
-            # https://github.com/plygrnd/tinkerbell/issues/3
-            if not post.author.name:
-                data['author']['author_name'] = '[deleted]'
-            elif hasattr(author, 'is_suspended'):
-                if getattr(author, 'is_suspended'):
-                    data['author']['account_name'] = author.name
-                    data['author']['is_banned'] = True
-            else:
-                data['author']['author_name'] = post.author.name
-                account_created = datetime.utcfromtimestamp(int(author.created_utc))
-                data['author']['account_created'] = str(account_created)
-                data['author']['account_age'] = abs((datetime.now() - account_created).days)
-                data['author']['is_banned'] = False
-            """
+            try:
+                data['submission_text'] = {
+                    "text": post.selftext,
+                    "source": "pushshift"
+                }
+            except(AttributeError, KeyError):
+                logger.debug(
+                    "Could not fetch submission text from Pushshift. Calling Reddit for post {}".format(post.id))
+                data['submission_text'] = {
+                    "text": self.submission(post.id).selftext,
+                    "source": "reddit"
+                }
+
             logger.debug(data)
             metrics.append(data)
 
