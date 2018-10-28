@@ -1,109 +1,57 @@
-version: "3"
+version: "3.3"
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.2
-    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
     environment:
-      - cluster.name=tinkerbell
-      - bootstrap.memory_lock=true
+    - cluster.name=snoowatch
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-     # - "cluster.routing.allocation.disk.watermark.low=30gb"
-     # - "cluster.routing.allocation.disk.watermark.high=25gb"
-     # - "cluster.routing.allocation.disk.watermark.flood_stage=20gb"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+    - network.host=0.0.0.0
+    - discovery.zen.ping.unicast.hosts=elasticsearch
+    - discovery.zen.minimum_master_nodes=1
+    - node.max_local_storage_nodes=50
+    - xpack.monitoring.collection.enabled=true
     volumes:
-      - esdata1:/usr/share/elasticsearch/data
-    ports:
-      - 9200:9200
+    - snoodata:/usr/share/elasticsearch/data
     networks:
-      - ekx
-
-  elasticsearch2:
-    image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.2
-    container_name: elasticsearch2
-    environment:
-      - cluster.name=tinkerbell
-      - bootstrap.memory_lock=true
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - "discovery.zen.ping.unicast.hosts=elasticsearch"
-    #  - "cluster.routing.allocation.disk.watermark.low=25gb"
-    #  - "cluster.routing.allocation.disk.watermark.high=20gb"
-    #  - "cluster.routing.allocation.disk.watermark.flood_stage=15gb"
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata2:/usr/share/elasticsearch/data
-    networks:
-      - ekx
+    - index
 
   kibana:
-    image: docker.elastic.co/kibana/kibana-oss:6.1.2
-    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:6.4.2
     environment:
-      - elasticsearch.url=http://elasticsearch:9200
+    - elasticsearch.url=http://elasticsearch-lb:9200
       - server.name=AnxMods
     ports:
       - 5601:5601
     networks:
-      - ekx
+    - index
+
+  elasticsearch-lb:
+    image: tnkinx:dev
+    command: >
+      /bin/bash -c "/usr/local/bin/wait-for-it.sh elasticsearch:9200 -- nginx -g 'daemon off;'"
+    ports:
+    - 9200:9200
+    networks:
+    - index
 
   runtime:
-    build: .
-    container_name: tinkerbell-runtime
-    depends_on:
-      - elasticsearch
-      - elasticsearch2
+    image: durson/snoowatch:dev
     command: >
-      /bin/bash -c "python tinkerbell/tinkerbell.py"
+      /bin/sh -c "python3 redditstream.py --subreddit anxiety"
     networks:
-      - ekx
-
-  consul:
-    container_name: consul
-    command: agent -server -http-port 8500 -bind 0.0.0.0 -client 0.0.0.0 -bootstrap-expect=1
-    image: consul:latest
-    volumes:
-      - consul:/consul/config
-    ports:
-      - 9301:9301
-      - 8500:8500
-      - 9600:9600/udp
-    networks:
-      - ekx
-
-  vault:
-    container_name: vault
-    image: vault
-    ports:
-      - 9201:8201
-    networks:
-      - ekx
-    volumes:
-      - vault:/mnt/vault/config
-      - vault:/mnt/vault/data
-      - vault:/mnt/vault/logs
-    cap_add:
-      - IPC_LOCK
-    depends_on:
-      - consul
+    - index
     environment:
-      - VAULT_LOCAL_CONFIG={"backend":{"consul":{"address":"consul:8500", "path":"vault"}},"listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":1}}
-    command: server
+      REDDIT_AUTHENTICATION_DATA: /run/secrets/
+    secrets:
+    - reddit_auth
 
 volumes:
-  esdata1:
-    driver: local
-  esdata2:
-    driver: local
-  vault:
-    driver: local
-  consul:
+  snoodata:
     driver: local
 
 networks:
-  ekx:
+  index:
+
+secrets:
+  reddit_auth:
+    file: ./reddit_auth.json
