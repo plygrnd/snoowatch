@@ -17,6 +17,8 @@ class ESClient(Elasticsearch):
             connection_class=RequestsHttpConnection
         )
 
+        super().__init__(hosts=cluster_url)
+
     def initialise_es_index(self):
         # cyka blyat fucking fielddata bullshit
         # pizdec elasticsearch not knowing what i want /s
