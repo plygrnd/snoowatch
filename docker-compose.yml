@@ -4,7 +4,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
     environment:
     - cluster.name=snoowatch
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     - node.max_local_storage_nodes=50
     - xpack.monitoring.collection.enabled=true
     volumes:
@@ -20,7 +20,7 @@ services:
         parallelism: 2
     environment:
       - cluster.name=snoowatch
-        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - discovery.zen.ping.unicast.hosts=elasticsearch-master
       - discovery.zen.minimum_master_nodes=1
       - node.max_local_storage_nodes=50
@@ -33,8 +33,8 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:6.4.2
     environment:
-    - elasticsearch.url=http://elasticsearch-lb:9200
-      - server.name=AnxMods
+      - ELASTICSEARCH_URL=http://elasticsearch-lb:9200
+      - SERVER_NAME=snoowatch
     ports:
       - 5601:5601
     networks:
