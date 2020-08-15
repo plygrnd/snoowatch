@@ -4,7 +4,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.2
     container_name: elasticsearch
     environment:
-      - cluster.name=tinkerbell
+      - cluster.name=snoowatch
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
      # - "cluster.routing.allocation.disk.watermark.low=30gb"
@@ -25,7 +25,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch-oss:6.1.2
     container_name: elasticsearch2
     environment:
-      - cluster.name=tinkerbell
+      - cluster.name=snoowatch
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - "discovery.zen.ping.unicast.hosts=elasticsearch"
@@ -54,7 +54,7 @@ services:
 
   runtime:
     build: .
-    container_name: tinkerbell-runtime
+    container_name: snoowatch-runtime
     depends_on:
       - elasticsearch
       - elasticsearch2

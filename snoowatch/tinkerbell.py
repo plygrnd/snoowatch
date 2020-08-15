@@ -11,9 +11,9 @@ from subreddit import Stats
 
 class Tinkerbell(object):
     def __init__(self):
-        self.reddit = Stats(aws_profile='tinkerbell', sub='anxiety')
+        self.reddit = Stats(aws_profile='snoowatch', sub='anxiety')
         self.es = ESClient(
-            aws_profile='tinkerbell',
+            aws_profile='snoowatch',
             sub='anxiety',
             cluster_url='172.18.0.1'
         )
