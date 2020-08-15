@@ -8,12 +8,12 @@ troposphere = "*"
 
 [packages]
 boto3 = "*"
+botocore = "*"
 elasticsearch = "*"
 elasticsearch-dsl = "*"
 praw = "*"
 prawcore = "*"
 psaw = "*"
-coverage = "*"
 
 [requires]
 python_version = "3.8"

@@ -8,13 +8,13 @@ import time
 from datetime import datetime
 
 import boto3
-from . import log_creator
+from .log import log_generator
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch_dsl import Search
 from praw import Reddit
 from prawcore import exceptions
 
-logger = log_creator.logger(__name__)
+logger = log_generator(__name__)
 
 
 class ESClient(Elasticsearch):
