@@ -9,7 +9,8 @@ logger = log_generator(__name__)
 
 def fetch_submissions(sub, since, until):
     """
-    Creates a list of submission objects.
+    Fetches a list of Submission objects from Pushshift.
+    We use this to backfill data missing from Reddit's API where required.
 
     :param sub: Subreddit to search
     :param since: Date from which to pull data, in Unix epoch format
@@ -18,14 +19,13 @@ def fetch_submissions(sub, since, until):
     """
     pushshift = PushshiftAPI()
 
-    logger.info('Fetching historical submissions from Pushshift.')
-    logger.debug('Since: {}'.format(since))
-    logger.debug('Until: {}'.format(until))
+    logger.info("Fetching historical submissions from Pushshift.")
+    logger.debug("Since: {}".format(since))
+    logger.debug("Until: {}".format(until))
 
-    # submissions() has been removed from PRAW because Reddit turned Cloudsearch off. 💩.
-    # submissions = [item for item in self.sub.submissions(since, until)]
+    # submissions() has been removed from the Reddit API.
     submissions = pushshift.search_submissions(before=until, after=since, subreddit=sub)
     submissions: List[Any] = [x for x in submissions]
-    logger.info('Fetched {} submissions from Pushshift.'.format(len(submissions)))
+    logger.info("Fetched {} submissions from Pushshift.".format(len(submissions)))
 
     return submissions

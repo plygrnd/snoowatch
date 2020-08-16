@@ -1,0 +1,8 @@
+{
+    "restructuredtext.confPath": "${workspaceFolder}/docs/source",
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/Users/durson/.local/share/virtualenvs/snoowatch-gxiztdFB/bin/python",
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true
+}
