@@ -35,26 +35,20 @@ SnooWatch is designed to be deployed on [AWS](https://aws.amazon.com), since it 
 
 1. Get an AWS account, if you don't already have one.
 1. [Create a Reddit API app](https://www.reddit.com/wiki/api). Give it a sensible User Agent. Note your `client_id`, `client_secret` and `user_agent`.
-1. Once you've set your AWS account up, [create a secret](https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html) in Secret Manager. Note the secret's name and AWS Region. The secret must be a JSON dictionary - its structure is below the line.
-1. Get a set of AWS credentials via your preferred method (IAM credential pair, temporary session credentials, EC2 instance role credentials, etc). This author does **NOT** recommend using permanent credentials, and SnooWatch does not use them in production; it uses an IAM role attached to a Fargate task definition to authenticate to AWS services.In [2]: r = reddit.Subreddit("prod/reddit/API", "us-east-2", subreddit="funny")
-`export`ing them in your terminal, by adding them to your `.aws/credentials` file, or by launching a resource with the appropriate permissions to obtain temporary credentials.
+1. Once you've set your AWS account up, [create a secret](https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html) in Secret Manager. Note the secret's name and AWS Region. The secret must be a JSON dictionary, structured as follows:
+
+        {
+            "client_id": "foo",
+            "client_secret": "bar",
+            "user_agent": "script:MyAwesomeRedditScript:0.1 (by /u/you)"
+        }
+
+1. Get a set of AWS credentials via your preferred method (IAM credential pair, temporary session credentials, EC2 instance role credentials, etc). This author does **NOT** recommend using permanent credentials, and SnooWatch does not use them in production; it uses an IAM role attached to a Fargate task definition to authenticate to AWS services.
+1. Configure a set of AWS credentials - either by `export`ing them in your terminal, by adding them to your `.aws/credentials` file, or by launching a resource with the appropriate permissions to obtain temporary credentials. I recommend the third option. Ideally, you should never see the credentials or interact directly with them.
+1. Launch a Python REPL.
 1. Instantiate a Reddit object as follows:
 
-```bash
-In [1]: import reddit
-In [2]: r = reddit.Subreddit("prod/reddit/API", "us-east-2", subreddit="funny")
-```
+        In [1]: import reddit
+        In [2]: r = reddit.Subreddit("prod/reddit/API", "us-east-2", subreddit="funny")
 
 1. Have fun!
-
----
-
-**Secrets Manager secret structure
-
-```json
-{
-    "client_id": "foo",
-    "client_secret": "bar",
-    "user_agent": "script:MyAwesomeRedditScript:0.1 (by /u/you)"
-}
-```
