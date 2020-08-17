@@ -8,7 +8,7 @@ from botocore.exceptions import ClientError
 from praw import Reddit
 from prawcore import exceptions
 
-from log import log_generator
+from .log import log_generator
 
 logger = log_generator(__name__)
 

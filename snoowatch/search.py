@@ -3,7 +3,7 @@
 
 from datetime import datetime
 
-from log import log_generator
+from .log import log_generator
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch_dsl import Search
 
@@ -13,14 +13,14 @@ logger = log_generator(__name__)
 
 
 class ESClient(Elasticsearch):
-    def __init__(self, aws_profile, sub, cluster_url):
-        self.reddit = Subreddit(aws_profile, sub=sub)
-        self.sub = sub
+    def __init__(self, reddit_api_secret_name, aws_region, subreddit, cluster_url):
+        self.reddit = Subreddit(reddit_api_secret_name, aws_region, subreddit=subreddit)
+        self.sub = subreddit
         self.cluster = Elasticsearch(
             host=cluster_url, connection_class=RequestsHttpConnection
         )
 
-        super(Elasticsearch).__init__()
+        super().__init__()
 
     def initialize_index(self):
         """
@@ -129,34 +129,3 @@ class ESClient(Elasticsearch):
                 datetime.utcfromtimestamp(data[0]).strftime("%Y-%m-%d %H:%M:%S")
             ] = {"Uniques": data[1], "Pageviews": data[2]}
 
-
-class Watcher(object):
-    def __init__(self, subreddit):
-        self.reddit = Subreddit(aws_profile="snoowatch", sub=subreddit)
-        self.es = ESClient(
-            aws_profile="snoowatch", sub="anxiety", cluster_url="172.18.0.1"
-        )
-
-        self.search = Search(using=self.es.cluster, index="anxiety")
-        self.results = self.search.query("range", created={"lte": "now"}).execute()
-        self.last_post = datetime.strftime(
-            datetime.strptime(self.results[0]["created"], "%Y-%m-%d %H:%M:%S").date(),
-            "%Y/%m/%d",
-        )
-
-        self.logger = logger(__name__)
-
-    def watch_subreddit(self):
-
-        self.logger.info("Time of last post in index: {}".format(self.last_post))
-
-        new_posts = self.reddit.fetch_submissions(
-            self.last_post, datetime.strftime(datetime.now().date(), "%Y/%m/%d")
-        )
-
-        parsed_new_posts = self.reddit.parse_submissions(new_posts)
-
-        self.es.index_submissions(parsed_new_posts)
-
-        self.logger.info("Index updated. Continuing to stream new submissions.")
-        self.es.stream_submissions()
