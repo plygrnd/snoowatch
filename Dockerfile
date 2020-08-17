@@ -15,4 +15,4 @@ COPY . /tmp/snoowatch
 RUN pip3 install /tmp/snoowatch
 
 WORKDIR /app
-ENTRYPOINT ["/usr/local/bin/python3", "/app/run.py"]
+ENTRYPOINT ["/usr/local/bin/python3", "/app/run_snoowatch.py"]
