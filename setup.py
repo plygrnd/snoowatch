@@ -8,5 +8,5 @@ setup(
     license='MIT',
     author='Dan Urson',
     author_email='dan@plygrnd.net',
-    description='Watcher: the FOSS Reddit Indexer'
+    description='SnooWatch: the Friendly FOSS Reddit Indexer'
 )
