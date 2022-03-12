@@ -21,6 +21,14 @@ def get_reddit_api_creds(reddit_api_secret_name, aws_region):
     This is a `script` application (more information in PRAW's documentation [here](https://praw.readthedocs.io/en/latest/getting_started/authentication.html#application-only-client-credentials).)
     As such, you do _not_ need to pass your Reddit username/password to the API; it requires your `user_agent`, `client_id` and `client_secret`.
 
+    Secret value MUST be formatted as follows:
+
+    {
+        'client_id': 'xxxxxx',
+        'client_secret': 'yyyyyy',
+        'user_agent': 'SnooWatch 0.1 by u/beefythecat'
+    }
+
     :param reddit_api_secret_name: The name of your Secrets Manager secret.
     :param aws_region: The AWS region within which your secret is stored
     :returns: JSON-formatted string containing required credentials.
@@ -59,13 +67,13 @@ def get_reddit_api_creds(reddit_api_secret_name, aws_region):
         # Decrypts secret using the associated KMS CMK.
         secret = get_secret_value_response["SecretString"]
 
-        return secret
+        return json.loads(secret)
 
 
 class Subreddit(Reddit):
     def __init__(self, reddit_api_secret_name, aws_region, subreddit=None):
         """
-        Initializes a PRAW.Reddit instance.
+        Initializes an instance of Reddit.
         :param subreddit: OPTIONAL. Supply a subreddit name if you're working with subreddits.
         :returns: praw.Reddit
         """
@@ -73,9 +81,10 @@ class Subreddit(Reddit):
         # Required: user_agent, client_id, client_secret
         reddit_creds = get_reddit_api_creds(reddit_api_secret_name, aws_region)
 
-        prawinit = json.loads(reddit_creds)
-
-        super().__init__(**prawinit)
+        if reddit_creds:
+            super().__init__(**reddit_creds)
+        else:
+            raise KeyError("You did not specify reddit credentials, please get real and try again.")
 
         if subreddit:
             self.sub = self.subreddit(subreddit)
