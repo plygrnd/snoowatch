@@ -56,7 +56,7 @@ class ESClient(Elasticsearch):
             logger.info(index)
             return index
         else:
-            logger.error("Index {} already exists.".format(self.sub))
+            logger.error(f"Index {self.sub} already exists.")
 
     def index_submissions(self, data):
         for post in data:
@@ -65,7 +65,7 @@ class ESClient(Elasticsearch):
             )
             logger.debug(put_index)
 
-        logger.debug("Indexed {} posts".format(len(data)))
+        logger.debug(f"Indexed {len(data)} posts")
 
     def stream_submissions(self):
         """
@@ -148,7 +148,7 @@ class Watcher(object):
 
     def watch_subreddit(self):
 
-        self.logger.info("Time of last post in index: {}".format(self.last_post))
+        self.logger.info(f"Time of last post in index: {self.last_post}")
 
         new_posts = self.reddit.fetch_submissions(
             self.last_post, datetime.strftime(datetime.now().date(), "%Y/%m/%d")

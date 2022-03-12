@@ -20,12 +20,12 @@ def fetch_submissions(sub, since, until):
     pushshift = PushshiftAPI()
 
     logger.info("Fetching historical submissions from Pushshift.")
-    logger.debug("Since: {}".format(since))
-    logger.debug("Until: {}".format(until))
+    logger.debug(f"Since: {since}")
+    logger.debug(f"Until: {until}")
 
     # submissions() has been removed from the Reddit API.
     submissions = pushshift.search_submissions(before=until, after=since, subreddit=sub)
     submissions: List[Any] = [x for x in submissions]
-    logger.info("Fetched {} submissions from Pushshift.".format(len(submissions)))
+    logger.info(f"Fetched {len(submissions)} submissions from Pushshift.")
 
     return submissions

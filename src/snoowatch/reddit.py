@@ -123,7 +123,7 @@ class Subreddit(Reddit):
         :returns: Single submission
         """
 
-        logger.info("Fetching post {}".format(post_id))
+        logger.info(f"Fetching post {post_id}")
 
         post = self.submission(id=post_id)
 
@@ -144,7 +144,7 @@ class Subreddit(Reddit):
         :param redditor: Reddit username
         :returns: self.redditor or None
         """
-        logger.info("Getting account status for u/{} .".format(redditor))
+        logger.info(f"Getting account status for u/{redditor} .")
         # We need to check if an account was deleted or shadowbanned
         # (both return prawcore.exceptions.NotFound)
         try:
